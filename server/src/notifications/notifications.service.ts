@@ -1,12 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
-import * as dotenv from 'dotenv';
+import { Injectable, Logger } from "@nestjs/common";
+import * as nodemailer from "nodemailer";
+import * as dotenv from "dotenv";
 
 dotenv.config();
 
 @Injectable()
 export class NotificationsService {
-  private transporter: nodemailer.Transporter;
+  private transporter;
+  private readonly logger = new Logger(NotificationsService.name);
 
   constructor() {
     this.transporter = nodemailer.createTransport({
@@ -20,26 +21,27 @@ export class NotificationsService {
     });
   }
 
-  async sendEmail(to: string, subject: string, text: string) {
-    if (!process.env.EMAIL_HOST) {
-      console.warn('EMAIL_HOST not configured — skipping email');
-      return;
+  async sendEmail(to: string, subject: string, text: string, html?: string) {
+    try {
+      const info = await this.transporter.sendMail({
+        from: "jeeja.softsuave@gmail.com",
+        to,
+        subject,
+        text,
+        html,
+      });
+      this.logger.log(`✅ Email sent to ${to}: ${info.messageId}`);
+      return info;
+    } catch (error) {
+      this.logger.error(`❌ Failed to send email: ${error.message}`);
+      throw error;
     }
-    await this.transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to,
-      subject,
-      text,
-    });
   }
 
+  // 👇 Add this method to stop the TS error
   async sendSms(to: string, message: string) {
-    // Placeholder: integrate Twilio or other provider here
-    if (!process.env.SMS_PROVIDER_API_KEY) {
-      console.warn('SMS provider not configured — skipping sms');
-      return;
-    }
-    // Example: call provider API with fetch / axios (not implemented here)
-    console.log(`Pretend sending SMS to ${to}: ${message}`);
+    // Placeholder implementation (for now just log)
+    this.logger.warn(`📱 SMS to ${to}: ${message}`);
+    // In the future, integrate Twilio or another API here
   }
 }
