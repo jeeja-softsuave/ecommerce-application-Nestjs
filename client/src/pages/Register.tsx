@@ -130,16 +130,16 @@ export default function Register() {
         {/* Button */}
         <button
           type="submit"
-          className="w-full bg-[#986439] text-white py-3 rounded-full font-semibold hover:bg-[#5F4130] transition-all duration-300 shadow-md hover:shadow-lg"
+          className="w-full bg-[#E58411] text-white py-3 rounded-full font-semibold hover:bg-[#5F4130] transition-all duration-300 shadow-md hover:shadow-lg"
         >
           Register
         </button>
 
-        <p className="text-center text-sm text-[#5F4130] mt-6">
+        <p className="text-center text-sm  mt-6">
           Already have an account?{" "}
           <span
             onClick={() => nav("/login")}
-            className="text-[#986439] font-semibold cursor-pointer hover:underline"
+            className="text-[#E58411] font-semibold cursor-pointer hover:underline"
           >
             Login
           </span>

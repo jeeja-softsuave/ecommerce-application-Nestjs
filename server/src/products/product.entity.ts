@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Product {
@@ -8,9 +8,15 @@ export class Product {
   @Column()
   title: string;
 
-  @Column('text', { nullable: true })
+  @Column("text", { nullable: true })
   description?: string;
 
-  @Column('int')
+  @Column("int")
   price: number; // in cents
+
+  @Column()
+  category: string;
+
+  @Column({ nullable: true })
+  image?: string; // store image filename or URL
 }

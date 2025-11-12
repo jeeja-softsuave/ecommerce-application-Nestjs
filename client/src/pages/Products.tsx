@@ -1,141 +1,185 @@
-import React from "react";
+import { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, Star, Plus } from "lucide-react";
 import API from "../services/api";
 
 interface Product {
   id: number;
   title: string;
-  description: string;
+  description?: string;
+  category?: string;
   price: number;
-  inventory: number;
+  inventory?: number;
+  image?: string;
 }
 
 interface CartItem {
   productId: number;
   name: string;
+  price: number;
   qty: number;
+  image: string;
 }
 
-export default function Products() {
-  const [products, setProducts] = React.useState<Product[]>([]);
-  const [q, setQ] = React.useState("");
-  const [message, setMessage] = React.useState("");
+const categories = ["Chair", "Beds", "Sofa", "Lamp"];
 
+export default function Products() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [activeCategory, setActiveCategory] = useState("Chair");
+  const [message, setMessage] = useState("");
+
+  // Fetch products from backend
   async function fetchProducts() {
-    const res = await API.get("/products", { params: { q } });
-    setProducts(res.data);
+    try {
+      const res = await API.get("/products");
+      setProducts(res.data);
+    } catch (err) {
+      console.error("Error fetching products:", err);
+    }
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchProducts();
   }, []);
 
-  async function search(e?: React.FormEvent) {
-    e?.preventDefault();
-    fetchProducts();
-  }
-
+  // Add to cart logic
   function addToCart(product: Product) {
     const raw = localStorage.getItem("cart");
     const cart: CartItem[] = raw ? JSON.parse(raw) : [];
-    const found = cart.find((c) => c.productId === product.id);
+    const found = cart.find((cart) => cart.productId === product.id);
     let newCart: CartItem[];
 
     if (found) {
-      newCart = cart.map((c) =>
-        c.productId === product.id ? { ...c, qty: c.qty + 1 } : c
+      newCart = cart.map((item) =>
+        item.productId === product.id ? { ...item, qty: item.qty + 1 } : item
       );
     } else {
       newCart = [
         ...cart,
-        { productId: product.id, name: product.title, qty: 1 },
+        {
+          productId: product.id,
+          name: product.title,
+          price: product.price,
+          qty: 1,
+          image: product.image
+            ? `http://localhost:4000${product.image}`
+            : "/asserts/cover.jpg",
+        },
       ];
     }
 
     localStorage.setItem("cart", JSON.stringify(newCart));
 
-    // Show toast notification
     setMessage(`${product.title} added to cart`);
     setTimeout(() => setMessage(""), 3000);
   }
 
+  // Filter products by category
+  const filteredProducts = products.filter(
+    (p) => p.category?.toLowerCase() === activeCategory.toLowerCase()
+  );
+
+  console.log("product", products);
+
   return (
-    <div className="min-h-screen bg-[#F6F6F5] px-6 md:px-10 pt-28 pb-16 font-sans text-[#0B0B0A] relative">
-      {/* Title */}
-      <h2 className="text-4xl font-extrabold text-center mb-8 tracking-tight">
-        Our <span className="text-[#986439]">Collection</span>
-      </h2>
+    <section className="py-20 bg-[#F6F6F5] min-h-screen relative">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* Title */}
+        <h2 className="text-3xl md:text-4xl font-bold text-center text-[#1E1E1E] mb-10">
+          Best Selling Product
+        </h2>
 
-      {/* Search bar */}
-      <form
-        onSubmit={search}
-        className="max-w-lg mx-auto mb-10 flex gap-3 bg-white rounded-full shadow-sm px-4 py-2"
-      >
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search furniture..."
-          className="flex-1 bg-transparent focus:outline-none text-[#5F4130]"
-        />
-        <button
-          type="submit"
-          className="px-6 py-2 bg-[#986439] text-white rounded-full hover:bg-[#5F4130] transition"
-        >
-          Search
-        </button>
-      </form>
-
-      {/* Products Grid */}
-      <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-7xl mx-auto">
-        {products.map((p) => (
-          <div
-            key={p.id}
-            className="bg-white rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col"
-          >
-            <div className="h-56 bg-[#F6F6F5] flex items-center justify-center">
-              <img
-                src="/asserts/cover.jpg"
-                alt={p.title}
-                className="w-48 h-48 object-contain"
-              />
-            </div>
-
-            <div className="p-6 flex flex-col justify-between flex-grow">
-              <div>
-                <h3 className="text-xl font-semibold mb-2 text-[#0B0B0A]">
-                  {p.title}
-                </h3>
-                <p className="text-[#5F4130] text-sm mb-3 line-clamp-2">
-                  {p.description}
-                </p>
-                <div className="text-lg font-bold text-[#986439] mb-2">
-                  ₹{p.price}
-                </div>
-                <div className="text-sm text-[#A4A09C]">
-                  In stock: {p.inventory}
-                </div>
-              </div>
-
-              <button
-                onClick={() => addToCart(p)}
-                className="mt-5 w-full py-3 bg-[#986439] text-white rounded-full font-semibold hover:bg-[#5F4130] transition"
-              >
-                Add to Cart
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {products.length === 0 && (
-        <div className="text-center text-[#A4A09C] mt-20 text-lg">
-          No products found. Try searching for something else.
+        {/* Categories */}
+        <div className="flex justify-center gap-4 mb-12 flex-wrap">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-6 py-2 rounded-full border transition-all duration-300 ${
+                activeCategory === cat
+                  ? "bg-[#E58411] text-white border-[#E58411]"
+                  : "border-gray-300 text-gray-600 hover:border-[#E58411] hover:text-[#E58411]"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
-      )}
+
+        {/* Product Grid */}
+        <div className="relative">
+          <button className="absolute -left-12 top-2/3 -translate-y-1/2 bg-white shadow-md w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#E58411] hover:text-white transition">
+            <ChevronLeft size={20} />
+          </button>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 justify-items-center">
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="bg-white rounded-3xl shadow-sm hover:shadow-lg transition-all duration-300 w-full max-w-[280px] overflow-hidden"
+                >
+                  <div className="flex justify-center bg-[#F9F9F9] p-8">
+                    <img
+                      src={
+                        product.image
+                          ? `http://localhost:4000${product.image}`
+                          : "/asserts/cover.jpg"
+                      }
+                      alt={product.title}
+                      className="w-60 h-50 object-contain"
+                    />
+                  </div>
+
+                  <div className="p-5">
+                    <p className="text-gray-400 text-sm">{product.category}</p>
+                    <h3 className="text-lg font-semibold text-[#1E1E1E] mt-1">
+                      {product.title}
+                    </h3>
+
+                    <div className="flex items-center mt-2 text-[#E58411]">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={16} fill="#E58411" />
+                      ))}
+                    </div>
+
+                    <div className="flex justify-between items-center mt-4">
+                      <span className="text-lg font-bold text-[#1E1E1E]">
+                        ₹{product.price}
+                      </span>
+                      <button
+                        onClick={() => addToCart(product)}
+                        className="bg-[#1E1E1E] text-white p-2 rounded-full hover:bg-[#E58411] transition"
+                      >
+                        <Plus size={20} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full text-center text-gray-500 text-lg mt-6">
+                No products found in this category.
+              </div>
+            )}
+          </div>
+
+          <button className="absolute -right-12 top-2/3 -translate-y-1/2 bg-white shadow-md w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#E58411] hover:text-white transition">
+            <ChevronRight size={20} />
+          </button>
+        </div>
+
+        {/* View All */}
+        <div className="text-center mt-10">
+          <button className="text-[#E58411] font-semibold flex items-center justify-center gap-2 hover:underline mx-auto">
+            View All →
+          </button>
+        </div>
+      </div>
 
       {/* Toast Notification */}
       {message && (
         <div
-          className="fixed bottom-6 right-6 md:bottom-10 md:right-10 bg-[#986439] text-white px-6 py-3 rounded-full shadow-lg 
+          className="fixed bottom-6 right-6 md:bottom-10 md:right-10 bg-[#E58411] text-white px-6 py-3 rounded-full shadow-lg 
           animate-fade-in-up text-sm font-medium"
         >
           {message}
@@ -156,6 +200,6 @@ export default function Products() {
         }
         `}
       </style>
-    </div>
+    </section>
   );
 }
