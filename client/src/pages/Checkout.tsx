@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import API from "../services/api"; // ✅ same API instance used in Cart
-import { authService } from "../services/auth"; // ✅ to check user login
+import API from "../services/api";
+import { authService } from "../services/auth";
 import { useNavigate } from "react-router-dom";
+import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 interface CartItem {
   productId: number;
@@ -13,6 +14,8 @@ interface CartItem {
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const stripe = useStripe();
+  const elements = useElements();
 
   const [form, setForm] = useState({
     fullName: "",
@@ -21,21 +24,16 @@ export default function Checkout() {
     city: "",
     postalCode: "",
     country: "",
-    paymentMethod: "card",
   });
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // ✅ Load cart items from localStorage
   useEffect(() => {
     const raw = localStorage.getItem("cart");
-    if (raw) {
-      setCartItems(JSON.parse(raw));
-    }
+    if (raw) setCartItems(JSON.parse(raw));
   }, []);
 
-  // ✅ Calculate totals
   const subtotal = cartItems.reduce(
     (acc, item) => acc + item.qty * (item.price || 0),
     0
@@ -43,53 +41,81 @@ export default function Checkout() {
   const shipping = subtotal > 200 ? 0 : 20;
   const total = subtotal + shipping;
 
-  // ✅ Handle input change
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  // ✅ Handle form submission (place order)
+  // ============================
+  //       HANDLE PAYMENT
+  // ============================
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!stripe || !elements) return;
 
     if (!authService.getToken()) {
-      alert("⚠️ Please login before placing an order.");
+      alert("Please login to continue");
       navigate("/login");
       return;
     }
 
-    if (cartItems.length === 0) {
-      alert("🛒 Your cart is empty.");
-      return;
-    }
+    setLoading(true);
 
     try {
-      setLoading(true);
-      const payload = {
-        customer: form,
-        items: cartItems,
-        total,
-        paymentMethod: form.paymentMethod,
-      };
+      // 1️⃣ Create PaymentIntent on backend
+      const res = await API.post("/payments/create-payment-intent", {
+        amount: total,
+      });
 
-      const res = await API.post("/orders", payload);
-      alert(`✅ Order placed successfully! Order ID: ${res.data.orderId}`);
+      const clientSecret = res.data.clientSecret;
 
-      // ✅ Clear cart
-      localStorage.removeItem("cart");
-      setCartItems([]);
+      // 2️⃣ Confirm card payment
+      const card = elements.getElement(CardElement);
+      if (!card) {
+        alert("Payment failed: card not loaded.");
+        setLoading(false);
+        return;
+      }
 
-      // ✅ Redirect to success or home
-      navigate("/");
+      const { error, paymentIntent } = await stripe.confirmCardPayment(
+        clientSecret,
+        {
+          payment_method: {
+            card: card, // now guaranteed not null
+            billing_details: {
+              name: form.fullName,
+              email: form.email,
+            },
+          },
+        }
+      );
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      if (paymentIntent.status === "succeeded") {
+        alert("Payment successful! 🎉");
+
+        // 3️⃣ Create order in your system
+        await API.post("/orders", {
+          items: cartItems,
+          customer: form,
+          total,
+          paymentIntentId: paymentIntent.id,
+        });
+
+        localStorage.removeItem("cart");
+        navigate("/");
+      }
     } catch (err: any) {
       alert(err?.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
   }
-  console.log("Cart Items:", cartItems);
 
   return (
     <div className="min-h-screen bg-[#F6F6F5] flex flex-col items-center py-12 px-4">
@@ -158,78 +184,23 @@ export default function Checkout() {
             required
           />
 
-          {/* Payment Details */}
-          {/* Payment Details */}
-          <div className="bg-white rounded-2xl shadow-md p-6 mt-6 border">
-            <h2 className="text-lg font-semibold text-gray-800">
-              Payment Details
-            </h2>
+          {/* Stripe Secure Card Field */}
+          <div className="border rounded-xl p-4 mt-6 bg-gray-50">
+            <h3 className="text-lg font-semibold mb-3">Card Details</h3>
 
-            <div className="space-y-4">
-              {/* Card Number */}
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Card number
-                </label>
-                <input
-                  type="text"
-                  placeholder="1234 5678 9012 3456"
-                  maxLength={19}
-                  onChange={(e) => {
-                    // Allow only digits and auto-insert spaces every 4 numbers
-                    let value = e.target.value.replace(/\D/g, "");
-                    value = value.replace(/(.{4})/g, "$1 ").trim();
-                    e.target.value = value;
-                  }}
-                  className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#E58411]"
-                />
-              </div>
-
-              {/* Expiration and CVV */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Expiration date (MM/YY)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="MM/YY"
-                    maxLength={5}
-                    onChange={(e) => {
-                      // Allow only digits and auto-insert slash after 2 numbers
-                      let value = e.target.value.replace(/\D/g, "");
-                      if (value.length >= 3)
-                        value = value.slice(0, 2) + "/" + value.slice(2, 4);
-                      e.target.value = value;
-                    }}
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#E58411]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Security code
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="CVV"
-                    maxLength={3}
-                    onChange={(e) => {
-                      // Only digits allowed
-                      e.target.value = e.target.value.replace(/\D/g, "");
-                    }}
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#E58411]"
-                  />
-                </div>
-              </div>
+            <div className="border rounded-md p-3 mt-1">
+              <CardElement
+                options={{
+                  style: { base: { fontSize: "16px", color: "#000" } },
+                }}
+              />
             </div>
           </div>
 
           <button
             type="submit"
-            disabled={loading}
-            className={`w-full ${
-              loading ? "bg-gray-400" : "bg-[#E58411] hover:bg-[#c96f0e]"
-            } text-white text-lg font-semibold py-3 rounded-lg mt-6 transition-all`}
+            disabled={loading || !stripe}
+            className="w-full bg-[#E58411] text-white text-lg font-semibold py-3 rounded-lg mt-6"
           >
             {loading ? "Placing Order..." : "Place Order"}
           </button>
