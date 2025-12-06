@@ -14,13 +14,9 @@ import Cart from "./pages/Cart";
 import Home from "./pages/Home";
 import Checkout from "./pages/Checkout";
 import { authService } from "./services/auth";
-
-// ⭐ Stripe imports
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import Enable2FA from "./pages/Enable2FA";
-
-// ⭐ Stripe Publishable Key
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 export default function App() {
@@ -62,7 +58,7 @@ export default function App() {
   }, []);
 
   return (
-    // ⭐ Wrap everything with Stripe Elements
+    //Wrap everything with Stripe Elements
     <Elements stripe={stripePromise}>
       <div className="min-h-screen bg-current text-[#0B0B0A] flex flex-col">
         {/* HEADER (hidden on Home) */}
