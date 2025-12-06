@@ -19,4 +19,8 @@ export class Product {
 
   @Column({ nullable: true })
   image?: string; // store image filename or URL
+
+  // ✅ Add this column for inventory
+  @Column("int", { default: 0 })
+  inventory: number;
 }

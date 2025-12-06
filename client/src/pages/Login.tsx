@@ -14,17 +14,20 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
     try {
       await authService.login(email, password);
       onLogin?.();
-      nav("/");
+      nav("/home");
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message);
     }
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#F6F6F5] px-4 ">
+    <div
+      className="flex items-center justify-center min-h-screen bg-[#F6F6F5] px-4 bg-cover bg-center bg-no-repeat "
+      style={{ backgroundImage: "url('/asserts/Home.png')" }}
+    >
       <form
         onSubmit={submit}
-        className="bg-white shadow-lg rounded-3xl p-8 w-full max-w-sm border border-[#EAE7E4] animate-fade-in"
+        className="bg-white/95 shadow-lg rounded-3xl p-8 w-full max-w-sm border border-[#EAE7E4] animate-fade-in"
       >
         <h2 className="text-3xl font-extrabold mb-4 text-center text-[#0B0B0A]">
           Login

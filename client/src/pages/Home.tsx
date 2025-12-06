@@ -63,10 +63,7 @@ export default function Home() {
         {/* RIGHT: Auth + Cart */}
         <div className="flex items-center gap-6 text-[#E58411] ">
           <Link to="/login" className="hover:text-white">
-            Login
-          </Link>
-          <Link to="/register" className="hover:text-white">
-            Register
+            Logout
           </Link>
 
           {/* CART ICON */}

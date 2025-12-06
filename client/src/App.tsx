@@ -37,7 +37,11 @@ export default function App() {
     setUser(authService.getUser());
   }, []);
 
-  const hideNavbar = location.pathname === "/";
+  const hideNavbar =
+    location.pathname === "/" ||
+    location.pathname === "/home" ||
+    location.pathname === "/register" ||
+    location.pathname === "/login";
   const [cartCount, setCartCount] = React.useState(0);
 
   React.useEffect(() => {
@@ -69,12 +73,18 @@ export default function App() {
 
             <ul className="flex items-center gap-10 text-white/90 font-medium">
               <li>
-                <Link to="/products" className="hover:text-white cursor-pointer">
+                <Link
+                  to="/products"
+                  className="hover:text-white cursor-pointer"
+                >
                   Furniture
                 </Link>
               </li>
               <li>
-                <Link to="/products" className="hover:text-white cursor-pointer">
+                <Link
+                  to="/products"
+                  className="hover:text-white cursor-pointer"
+                >
                   Shop
                 </Link>
               </li>
@@ -116,7 +126,8 @@ export default function App() {
         {/* PAGE ROUTES */}
         <main className="flex-1">
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Login />} />
+            <Route path="/home" element={<Home />} />
             <Route path="/products" element={<Products />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/admin" element={<Admin />} />
@@ -125,12 +136,13 @@ export default function App() {
               element={<Login onLogin={() => setUser(authService.getUser())} />}
             />
             <Route path="/register" element={<Register />} />
-            <Route path="/checkout" element={<Checkout />} /> {/* <-- Stripe works here */}
+            <Route path="/checkout" element={<Checkout />} />{" "}
+            {/* <-- Stripe works here */}
           </Routes>
         </main>
 
         {/* FOOTER */}
-        <footer className="bg-white border-t mt-auto py-10 text-center text-[#5F4130]">
+        <footer className="bg-white border-t mt-auto py-2 text-center text-[#5F4130]">
           <p>
             © {new Date().getFullYear()}{" "}
             <span className="font-semibold">Panto</span>. All rights reserved.

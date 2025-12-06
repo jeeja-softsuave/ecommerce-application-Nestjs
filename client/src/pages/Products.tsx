@@ -61,7 +61,7 @@ export default function Products() {
           price: product.price,
           qty: 1,
           image: product.image
-            ? `http://localhost:4000${product.image}`
+            ? `http://localhost:4000/uploads/${product.image}`
             : "/asserts/cover.jpg",
         },
       ];
@@ -122,7 +122,7 @@ export default function Products() {
                     <img
                       src={
                         product.image
-                          ? `http://localhost:4000${product.image}`
+                          ? `http://localhost:4000/uploads/${product.image}`
                           : "/asserts/cover.jpg"
                       }
                       alt={product.title}

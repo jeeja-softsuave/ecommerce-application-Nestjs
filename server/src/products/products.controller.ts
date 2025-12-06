@@ -52,7 +52,12 @@ export class ProductsController {
     })
   )
   async create(@Body() dto: any, @UploadedFile() file?: Express.Multer.File) {
-    if (file) dto.image = file.filename; // ✅ store only filename
+    if (file) dto.image = file.filename;
+
+    // Convert numeric fields
+    if (dto.price) dto.price = Number(dto.price);
+    if (dto.inventory) dto.inventory = Number(dto.inventory);
+
     return this.svc.create(dto);
   }
 
@@ -79,7 +84,12 @@ export class ProductsController {
     @Body() dto: any,
     @UploadedFile() file?: Express.Multer.File
   ) {
-    if (file) dto.image = file.filename; // ✅ same logic for consistency
+    if (file) dto.image = file.filename;
+
+    // Convert numeric fields
+    if (dto.price) dto.price = Number(dto.price);
+    if (dto.inventory) dto.inventory = Number(dto.inventory);
+
     await this.svc.update(Number(id), dto);
     return { success: true };
   }

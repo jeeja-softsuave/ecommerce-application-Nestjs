@@ -11,12 +11,13 @@ export default function Admin() {
   const [inventory, setInventory] = React.useState(0);
   const [image, setImage] = React.useState<File | null>(null);
   const [isDragging, setIsDragging] = React.useState(false);
+  const [editingProduct, setEditingProduct] = React.useState<any>(null);
 
   const token = authService.getToken();
   const user = authService.getUser();
-
   const categories = ["Chair", "Beds", "Sofa", "Lamp"];
 
+  // Access control
   if (!token || user?.role !== "admin") {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-[#F9F5F2]">
@@ -44,7 +45,18 @@ export default function Admin() {
     }
   }
 
-  async function create(e: React.FormEvent) {
+  // Prefill form for editing
+  function startEdit(product: any) {
+    setEditingProduct(product);
+    setTitle(product.title);
+    setDescription(product.description);
+    setCategory(product.category);
+    setPrice(product.price);
+    setInventory(product.inventory);
+    setImage(null);
+  }
+
+  async function saveProduct(e: React.FormEvent) {
     e.preventDefault();
 
     if (price <= 0 || inventory < 0) {
@@ -57,14 +69,25 @@ export default function Admin() {
       formData.append("title", title);
       formData.append("description", description);
       formData.append("category", category);
-      formData.append("price", price.toString());
-      formData.append("inventory", inventory.toString());
+      formData.append("price", (price ?? 0).toString());
+      formData.append("inventory", (inventory ?? 0).toString());
+
       if (image) formData.append("image", image);
 
-      await API.post("/products", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      if (editingProduct) {
+        // Edit mode
+        await API.put(`/products/${editingProduct.id}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        setEditingProduct(null);
+      } else {
+        // Create mode
+        await API.post("/products", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
 
+      // Reset form
       setTitle("");
       setDescription("");
       setCategory("");
@@ -98,19 +121,19 @@ export default function Admin() {
       alert("Please drop a valid image file.");
     }
   };
-  console.log(products);
 
   return (
     <div className="min-h-screen bg-[#F6F6F5] py-10 px-6 font-[Montserrat]">
-      <h2 className="text-3xl font-bold text-center mb-10 ">Admin Panel</h2>
+      <h2 className="text-3xl font-bold text-center mb-10">Admin Panel</h2>
 
       <div className="flex flex-col md:flex-row gap-10 justify-center items-start max-w-7xl mx-auto">
-        {/* Create Product Section */}
+        {/* Create / Edit Product Section */}
         <section className="bg-white w-full md:w-2/3 p-6 rounded-2xl shadow-md border border-[#E8E2DC]">
           <h3 className="text-2xl font-semibold mb-5 text-[#2C2C2C]">
-            Create a New Product
+            {editingProduct ? "Edit Product" : "Create a New Product"}
           </h3>
-          <form onSubmit={create} className="grid gap-4">
+
+          <form onSubmit={saveProduct} className="grid gap-4">
             {/* Title */}
             <input
               placeholder="Product title"
@@ -148,7 +171,6 @@ export default function Admin() {
 
             {/* Price & Inventory */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Product Price */}
               <div className="flex flex-col">
                 <label className="text-sm font-medium text-[#7A7A7A] mb-1">
                   Product Price
@@ -162,7 +184,6 @@ export default function Admin() {
                 />
               </div>
 
-              {/* Product Inventory */}
               <div className="flex flex-col">
                 <label className="text-sm font-medium text-[#7A7A7A] mb-1">
                   Product Inventory
@@ -177,7 +198,7 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* Image Upload (Drag & Drop) */}
+            {/* Image Upload */}
             <div>
               <label className="block text-sm font-medium text-[#7A7A7A] mb-1">
                 Product Image
@@ -208,6 +229,17 @@ export default function Admin() {
                       Click or drag new image to replace
                     </p>
                   </div>
+                ) : editingProduct?.image ? (
+                  <div className="flex flex-col items-center">
+                    <img
+                      src={`http://localhost:4000/uploads/${editingProduct.image}`}
+                      alt="Existing"
+                      className="w-32 h-32 object-cover rounded-lg mb-2 border"
+                    />
+                    <p className="text-[#7A7A7A] text-sm">
+                      Click or drag new image to replace
+                    </p>
+                  </div>
                 ) : (
                   <p className="text-[#7A7A7A]">
                     {isDragging
@@ -226,12 +258,32 @@ export default function Admin() {
               />
             </div>
 
-            <button
-              type="submit"
-              className="bg-[#E58411] hover:bg-black text-white hover:text-[#E58411] font-semibold py-2 px-4 rounded-xl transition"
-            >
-              Create Product
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="bg-[#E58411] hover:bg-black text-white hover:text-[#E58411] font-semibold py-2 px-4 rounded-xl transition"
+              >
+                {editingProduct ? "Update Product" : "Create Product"}
+              </button>
+
+              {editingProduct && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingProduct(null);
+                    setTitle("");
+                    setDescription("");
+                    setCategory("");
+                    setPrice(0);
+                    setInventory(0);
+                    setImage(null);
+                  }}
+                  className="bg-gray-300 hover:bg-gray-400 text-black py-2 px-4 rounded-xl transition"
+                >
+                  Cancel Edit
+                </button>
+              )}
+            </div>
           </form>
         </section>
 
@@ -246,23 +298,29 @@ export default function Admin() {
                 <th className="py-2">Title</th>
                 <th>Category</th>
                 <th>Price</th>
-                <th></th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {products.map((products) => (
+              {products.map((product) => (
                 <tr
-                  key={products.id}
-                  className="border-b border-[#F0EBE5] hover:bg-[#FFF5EE] transition"
+                  key={product.id}
+                  className="border-b border-[#F0EBE5] hover:bg-[#FFF5EE] transition "
                 >
-                  <td className="py-2 text-[#2C2C2C]">{products.title}</td>
-                  <td className="text-[#7A7A7A]">{products.category}</td>
+                  <td className="py-2 text-[#2C2C2C]">{product.title}</td>
+                  <td className="text-[#7A7A7A]">{product.category}</td>
                   <td className="font-semibold text-[#E58411]">
-                    ${products.price}
+                    ${product.price}
                   </td>
-                  <td>
+                  <td className="flex gap-2 text-center justify-start">
                     <button
-                      onClick={() => remove(products.id)}
+                      onClick={() => startEdit(product)}
+                      className="text-blue-500 hover:text-blue-700 font-semibold"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => remove(product.id)}
                       className="text-red-500 hover:text-red-700 font-semibold"
                     >
                       Delete

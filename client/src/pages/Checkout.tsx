@@ -215,16 +215,16 @@ export default function Checkout() {
           ) : (
             <>
               <div className="space-y-3 mb-6">
-                {cartItems.map((item) => (
+                {cartItems.map((product) => (
                   <div
-                    key={item.productId}
+                    key={product.productId}
                     className="flex justify-between items-center"
                   >
                     <div className="flex items-center gap-3">
-                      {item.image ? (
+                      {product.image ? (
                         <img
-                          src={item.image}
-                          alt={item.name}
+                          src={product.image}
+                          alt={product.name}
                           className="w-16 h-20 rounded-lg object-contain border"
                         />
                       ) : (
@@ -233,12 +233,17 @@ export default function Checkout() {
                         </div>
                       )}
                       <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-gray-500">Qty: {item.qty}</p>
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-sm text-gray-500">
+                          Qty: {product.qty}
+                        </p>
                       </div>
                     </div>
                     <p className="font-semibold">
-                      ${item.price ? (item.price * item.qty).toFixed(2) : "-"}
+                      $
+                      {product.price
+                        ? (product.price * product.qty).toFixed(2)
+                        : "-"}
                     </p>
                   </div>
                 ))}
