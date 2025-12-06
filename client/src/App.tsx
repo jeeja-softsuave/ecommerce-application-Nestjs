@@ -18,6 +18,7 @@ import { authService } from "./services/auth";
 // ⭐ Stripe imports
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+import Enable2FA from "./pages/Enable2FA";
 
 // ⭐ Stripe Publishable Key
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
@@ -137,6 +138,7 @@ export default function App() {
             />
             <Route path="/register" element={<Register />} />
             <Route path="/checkout" element={<Checkout />} />{" "}
+            <Route path="/enable-2fa" element={<Enable2FA />} />
             {/* <-- Stripe works here */}
           </Routes>
         </main>

@@ -1,13 +1,14 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
-import * as bcrypt from 'bcryptjs';
-import { JwtService } from '@nestjs/jwt';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { UsersService } from "../users/users.service";
+import * as bcrypt from "bcryptjs";
+import { JwtService } from "@nestjs/jwt";
+import * as speakeasy from "speakeasy";
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
-    private jwtService: JwtService,
+    private jwtService: JwtService
   ) {}
 
   async validateUser(email: string, pass: string) {
@@ -26,21 +27,26 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const token = this.jwtService.sign(payload);
     return {
-      token,  // <-- frontend expects this key
-      user,   // <-- send back user info
+      token, // <-- frontend expects this key
+      user, // <-- send back user info
     };
   }
 
   async register(
     email: string,
     password: string,
-    role = 'user',
-    phone?: string,
+    role = "user",
+    phone?: string
   ) {
     const exists = await this.usersService.findByEmail(email);
-    if (exists) throw new UnauthorizedException('Email already registered');
+    if (exists) throw new UnauthorizedException("Email already registered");
 
-    const created = await this.usersService.create(email, password, role, phone);
+    const created = await this.usersService.create(
+      email,
+      password,
+      role,
+      phone
+    );
     const { password: _p, ...u } = created as any;
 
     const payload = { sub: u.id, email: u.email, role: u.role };
@@ -50,5 +56,19 @@ export class AuthService {
       token,
       user: u,
     };
+  }
+
+  generate2FASecret(email: string) {
+    return speakeasy.generateSecret({
+      name: `Ecommerce App (${email})`,
+    });
+  }
+
+  verify2FAToken(secret: string, token: string) {
+    return speakeasy.totp.verify({
+      secret,
+      encoding: "ascii",
+      token,
+    });
   }
 }
