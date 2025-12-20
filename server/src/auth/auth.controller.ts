@@ -20,65 +20,61 @@ export class AuthController {
     private usersService: UsersService
   ) {}
 
+  // -------------------------------
+  // Register
+  // -------------------------------
   @Post("register")
-  async register(
-    @Body()
-    body: {
-      email: string;
-      password: string;
-      role?: string;
-      phone?: string;
-    }
-  ) {
+  async register(@Body() body) {
     return this.authService.register(
       body.email,
       body.password,
-      body.role || "user",
+      body.role,
       body.phone
     );
   }
 
+  // -------------------------------
+  // Step 1: Login (no token yet)
+  // -------------------------------
   @Post("login")
   async login(@Body() body: { email: string; password: string }) {
     const user = await this.authService.validateUser(body.email, body.password);
 
-    if (!user) {
-      throw new UnauthorizedException("Invalid credentials");
-    }
-
-    // If user has 2FA enabled → return requires2FA: true
-    if (user.twoFactorEnabled) {
-      return {
-        requires2FA: true,
-        userId: user.id,
-      };
-    }
-
-    return this.authService.login(user);
-  }
-
-  // -------------------------------
-  //       ENABLE 2FA (SCAN QR)
-  // -------------------------------
-  @UseGuards(JwtAuthGuard)
-  @Get("2fa/generate")
-  async generate2FA(@Req() req) {
-    const secret = speakeasy.generateSecret({
-      name: `E-commerce App (${req.user.email})`,
-    });
-
-    const qrCode = await QRCode.toDataURL(secret.otpauth_url);
-
-    await this.usersService.save2FASecret(req.user.id, secret.base32);
+    if (!user) throw new UnauthorizedException("Invalid credentials");
 
     return {
-      qrCode,
-      secret: secret.base32,
+      requires2FA: true,
+      twoFactorEnabled: user.twoFactorEnabled,
+      userId: user.id,
     };
   }
 
   // -------------------------------
-  //     VERIFY 2FA (Enable 2FA)
+  // Generate QR (only if 2FA not enabled)
+  // -------------------------------
+  @UseGuards(JwtAuthGuard)
+  @Get("2fa/generate")
+  async generate2FA(@Req() req) {
+    const user = await this.usersService.findById(req.user.id);
+
+    if (user.twoFactorEnabled) {
+      return { alreadyEnabled: true };
+    }
+
+    const secret = speakeasy.generateSecret({
+      name: `E-commerce (${user.email})`,
+    });
+
+    const qrCode = await QRCode.toDataURL(secret.otpauth_url);
+
+    // Save secret in DB
+    await this.usersService.save2FASecret(user.id, secret.base32);
+
+    return { qrCode, secret: secret.base32 };
+  }
+
+  // -------------------------------
+  // Step 2: Verify & Enable 2FA
   // -------------------------------
   @UseGuards(JwtAuthGuard)
   @Post("2fa/verify")
@@ -89,19 +85,18 @@ export class AuthController {
       secret: user.twoFactorSecret,
       encoding: "base32",
       token: body.code,
+      window: 1,
     });
 
-    if (!isValid) {
-      throw new UnauthorizedException("Invalid 2FA code");
-    }
+    if (!isValid) throw new UnauthorizedException("Invalid 2FA code");
 
-    await this.usersService.enable2FA(req.user.id);
+    await this.usersService.enable2FA(user.id);
 
-    return { message: "2FA enabled successfully" };
+    return { success: true, message: "2FA enabled" };
   }
 
   // -------------------------------
-  //     LOGIN USING OTP
+  // Step 3: Login using 2FA
   // -------------------------------
   @Post("2fa/login")
   async loginWith2FA(@Body() body: { userId: number; code: string }) {
@@ -109,17 +104,18 @@ export class AuthController {
 
     if (!user) throw new UnauthorizedException("User not found");
 
+    if (!user.twoFactorEnabled)
+      throw new UnauthorizedException("2FA is not enabled");
+
     const isValid = speakeasy.totp.verify({
       secret: user.twoFactorSecret,
       encoding: "base32",
       token: body.code,
+      window: 1,
     });
 
-    if (!isValid) {
-      throw new UnauthorizedException("Invalid 2FA code");
-    }
+    if (!isValid) throw new UnauthorizedException("Invalid 2FA code");
 
-    // Return JWT token
-    return this.authService.login(user);
+    return this.authService.login(user); // returns token + user
   }
 }
