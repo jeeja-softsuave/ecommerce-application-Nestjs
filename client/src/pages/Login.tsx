@@ -21,26 +21,16 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
     try {
       const res = await authService.login(email, password);
 
-      // If user has NOT enabled 2FA
-      if (res.twoFactorEnabled === false) {
-        // redirect to enable page
-        nav("/enable-2fa");
-        return;
-      }
-
-      // If 2FA is enabled → backend returns requires2FA = true
-      if (res.requires2FA === true) {
+      // Backend requires 2FA
+      if (res.requires2FA) {
         setRequires2FA(true);
         setUserId(res.userId);
         return;
       }
 
-      // If backend already returned a token (rare case)
-      if (res.token) {
-        localStorage.setItem("token", res.token);
-        onLogin?.();
-        nav("/home");
-      }
+      localStorage.setItem("token", res.token);
+      onLogin?.();
+      nav("/home");
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message);
     }
@@ -53,7 +43,6 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
 
     try {
       const res = await authService.loginWith2FA(userId, twoFACode);
-
       localStorage.setItem("token", res.token);
       onLogin?.();
       nav("/home");
@@ -83,7 +72,6 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
             {error}
           </p>
         )}
-
         {!requires2FA ? (
           <>
             <div className="mb-4">
