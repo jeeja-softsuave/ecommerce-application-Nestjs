@@ -59,4 +59,18 @@ export class UsersService {
       { twoFactorEnabled: false, twoFactorSecret: null }
     );
   }
+
+  // -----------------------------
+  // Find all admin users
+  // -----------------------------
+  async findAllAdmins() {
+    return this.usersRepo.find({ where: { role: "admin" } });
+  }
+
+  // -----------------------------
+  // Find all users (for admin chat selection)
+  // -----------------------------
+  async findAllUsers() {
+    return this.usersRepo.find();
+  }
 }

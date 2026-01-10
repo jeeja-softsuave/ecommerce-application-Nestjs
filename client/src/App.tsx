@@ -17,6 +17,7 @@ import { authService } from "./services/auth";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import Enable2FA from "./pages/Enable2FA";
+import Chat from "./pages/Chat";
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 export default function App() {
@@ -95,6 +96,11 @@ export default function App() {
                   Contact
                 </Link>
               </li>
+              <li>
+                <Link to="/chat" className="hover:text-white cursor-pointer">
+                  Chat
+                </Link>
+              </li>
             </ul>
 
             {/* CART ICON */}
@@ -135,6 +141,7 @@ export default function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/checkout" element={<Checkout />} />{" "}
             <Route path="/enable-2fa" element={<Enable2FA />} />
+            <Route path="/chat" element={<Chat />} />
             {/* <-- Stripe works here */}
           </Routes>
         </main>

@@ -22,6 +22,13 @@ async function bootstrap() {
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads/',
   });
+  
+  // ✅ Ensure chat uploads directory exists
+  const chatUploadsDir = join(__dirname, '..', 'uploads', 'chat');
+  const fs = require('fs');
+  if (!fs.existsSync(chatUploadsDir)) {
+    fs.mkdirSync(chatUploadsDir, { recursive: true });
+  }
 
   await app.listen(4000);
   console.log('✅ Server running on http://localhost:4000');

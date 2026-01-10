@@ -10,6 +10,8 @@ import {
 import { AuthService } from "./auth.service";
 import { UsersService } from "../users/users.service";
 import { JwtAuthGuard } from "./jwt-auth.guard";
+import { LoginDto } from "./dto/login.dto";
+import { RegisterDto } from "./dto/register.dto";
 import * as speakeasy from "speakeasy";
 import * as QRCode from "qrcode";
 
@@ -21,15 +23,7 @@ export class AuthController {
   ) {}
 
   @Post("register")
-  async register(
-    @Body()
-    body: {
-      email: string;
-      password: string;
-      role?: string;
-      phone?: string;
-    }
-  ) {
+  async register(@Body() body: RegisterDto) {
     return this.authService.register(
       body.email,
       body.password,
@@ -39,7 +33,7 @@ export class AuthController {
   }
 
   @Post("login")
-  async login(@Body() body: { email: string; password: string }) {
+  async login(@Body() body: LoginDto) {
     const user = await this.authService.validateUser(body.email, body.password);
 
     if (!user) {
